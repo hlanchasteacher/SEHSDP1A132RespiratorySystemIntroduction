@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Respiratory Mechanics Lab</title>
+    <!-- html2pdf Library for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #2d6a4f;
+            --secondary: #40916c;
+            --accent-blue: #0077b6;
+            --accent-yellow: #f1c40f;
+            --accent-orange: #e67e22;
+            --bg-light: #f8f9fa;
+            --text-dark: #212529;
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+            padding-bottom: 50px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            border-top: 5px solid var(--primary);
+        }
+
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Theory & Diagram Grid */
+        .theory-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 850px) {
+            .theory-layout { grid-template-columns: 1fr; }
+        }
+
+        .theory-box {
+            background: #e0f2fe;
+            border-left: 5px solid var(--accent-blue);
+            padding: 20px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .theory-box h3 {
+            color: var(--accent-blue);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .theory-box ul {
+            margin-left: 20px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .theory-box li {
+            margin-bottom: 5px;
+        }
+
+        .theory-box .external-link {
+            margin-top: auto;
+            padding-top: 15px;
+            display: inline-block;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+            align-self: flex-start;
+        }
+        .theory-box .external-link:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .diagram-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+        }
+
+        .diagram-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .diagram-box p {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        /* Module: Airway Path Slider */
+        .airway-track {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 25px 0;
+            position: relative;
+            padding: 0 10px;
+        }
+
+        .airway-track::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #e9ecef;
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+
+        .airway-step {
+            position: relative;
+            z-index: 2;
+            background: white;
+            border: 2px solid #adb5bd;
+            border-radius: 20px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .airway-step.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .airway-step.conducting { border-color: var(--accent-yellow); }
+        .airway-step.gas-exchange { border-color: var(--accent-orange); }
+
+        #airway-slider {
+            width: 100%;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+
+        .airway-display {
+            background: #fff3cd;
+            border-left: 5px solid var(--accent-yellow);
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            min-height: 80px;
+        }
+
+        /* Module: Mechanics Lab */
+        .lab-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 850px) {
+            .lab-grid { grid-template-columns: 1fr; }
+        }
+
+        .thorax-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f1f3f5;
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            min-height: 450px;
+        }
+
+        /* SVG Styling */
+        .thorax-svg {
+            width: 100%;
+            max-width: 320px;
+            height: auto;
+            overflow: visible;
+        }
+
+        .pressure-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 15px;
+        }
+
+        .pressure-badge {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            text-align: center;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .pressure-equal { background: #e2e3e5; color: #383d41; }
+        .pressure-low { background: #d1ecf1; color: #0c5460; }
+        .pressure-high { background: #f8d7da; color: #721c24; }
+
+        .pressure-gradient {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #6c757d;
+            margin-top: 5px;
+            min-height: 24px;
+            transition: color 0.3s;
+        }
+
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .control-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .control-group label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .legend {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+        }
+
+        /* Module: Graph */
+        .graph-container {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 200px;
+            display: block;
+        }
+
+        /* Module: Quiz */
+        .quiz-question {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .quiz-question p {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .quiz-option {
+            display: block;
+            margin: 8px 0;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quiz-option:hover { background: #e9ecef; }
+        .quiz-option.selected { border-color: var(--accent-blue); background: #e0f2fe; }
+        .quiz-option.correct { border-color: #28a745; background: #d4edda; }
+        .quiz-option.incorrect { border-color: #dc3545; background: #f8d7da; }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            font-size: 1rem;
+        }
+
+        .btn:hover { background: #1b4332; }
+        .btn:disabled { background: #adb5bd; cursor: not-allowed; }
+
+        .btn-pdf {
+            background: var(--accent-blue);
+            margin-left: 15px;
+            display: none;
+        }
+        .btn-pdf:hover { background: #005f8f; }
+
+        #quiz-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .student-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .student-info label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .student-info input {
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            width: 250px;
+            font-size: 1rem;
+        }
+
+        /* Hidden container for PDF generation */
+        #pdf-template {
+            display: none;
+            padding: 40px;
+            font-family: Arial, sans-serif;
+            color: #000;
+        }
+        #pdf-template h1 { font-size: 24px; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 5px;}
+        #pdf-template .meta { margin-bottom: 20px; font-size: 14px; }
+        #pdf-template .question { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        #pdf-template .q-text { font-weight: bold; font-size: 14px; }
+        #pdf-template .q-ans { font-size: 14px; margin-top: 4px; }
+        #pdf-template .correct { color: green; }
+        #pdf-template .incorrect { color: red; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🌬️ Respiratory System Mechanics Lab</h1>
+        <p>Explore airway pathways, volume-pressure dynamics, and the mechanics of breathing.</p>
+    </header>
+
+    <div class="container">
+
+        <!-- MODULE 1: Theory & Anatomy -->
+        <div class="card">
+            <h2>1. Respiratory Structures & Pressure Gradients</h2>
+            
+            <div class="theory-layout">
+                <!-- Theory Text -->
+                <div class="theory-box">
+                    <h3>How Gases Move: The Pressure Gradient</h3>
+                    <p>Gases <strong>always</strong> move from areas of <strong>high pressure</strong> to areas of <strong>low pressure</strong>. Your respiratory system uses this rule to move air:</p>
+                    <ul>
+                        <li><strong>Conducting Airways:</strong> The nose, pharynx, larynx, trachea, bronchi, and bronchioles transport air, filter it, and warm it. (No gas exchange happens here).</li>
+                        <li><strong>Gas Exchange:</strong> The alveoli (tiny air sacs) are the only structures where oxygen and carbon dioxide diffuse into and out of the blood.</li>
+                        <li><strong>Mechanical Structures:</strong> The <strong>diaphragm</strong> (a dome-shaped muscle at the base of the chest) and the <strong>external intercostal muscles</strong> (between the ribs) drive ventilation.</li>
+                    </ul>
+                    <p><strong>Inhalation:</strong> When the diaphragm contracts (flattens) and the intercostals contract (lifting the rib cage), the thoracic cavity expands. This increases lung volume, dropping alveolar pressure below atmospheric pressure (P<sub>ATM</sub>). Air rushes <em>in</em>.</p>
+                    <p><strong>Exhalation:</strong> When these muscles relax, the thoracic cavity shrinks. The volume decreases, causing alveolar pressure to rise above atmospheric pressure. Air is pushed <em>out</em>.</p>
+                    
+                    <a href="https://www.msdmanuals.com/home/multimedia/3dmodel/breathing-dynamics" target="_blank" class="external-link">🔗 Explore the MSD Manuals 3D Breathing Model for a detailed anatomical view</a>
+                </div>
+
+                <!-- Diagram Image -->
+                <div class="diagram-box">
+                    <img src="https://microbenotes.com/wp-content/uploads/2026/05/Human-Respiratory-System.jpeg" alt="Labeled diagram of the human respiratory system showing the upper airways, trachea, bronchi, lungs, and alveoli.">
+                    <p>Figure 1: Anatomical structures of the respiratory system. (Image: Microbe Notes)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE 2: Airway Pathway -->
+        <div class="card">
+            <h2>2. The Airway Pathway: Conducting vs. Gas Exchange</h2>
+            <p>Use the slider below to trace the movement of air from the environment to the alveoli.</p>
+            
+            <div class="airway-track">
+                <div class="airway-step conducting" id="step-0">Sinuses / Pharynx</div>
+                <div class="airway-step conducting" id="step-1">Trachea</div>
+                <div class="airway-step conducting" id="step-2">Bronchi</div>
+                <div class="airway-step conducting" id="step-3">Bronchioles</div>
+                <div class="airway-step gas-exchange" id="step-4">Alveoli</div>
+            </div>
+            
+            <input type="range" id="airway-slider" min="0" max="4" value="0" step="1">
+            
+            <div class="airway-display" id="airway-info">
+                <strong>Location:</strong> Nasal cavity / Pharynx<br>
+                <strong>Function:</strong> Conducting airway. Conditions and filters air before it travels deeper into the respiratory tract.
+            </div>
+        </div>
+
+        <!-- MODULE 3: Breathing Mechanism Simulator -->
+        <div class="card">
+            <h2>3. Lung Simulator & Boyle's Law</h2>
+            <p>Use the single slider below to simulate the muscles contracting and relaxing together, and watch the pressure gradient change.</p>
+            
+            <div class="lab-grid">
+                <!-- Visualizer (SVG Thorax) -->
+                <div class="thorax-visual">
+                    <svg class="thorax-svg" viewBox="0 0 300 340" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Definitions for gradients -->
+                        <defs>
+                            <radialGradient id="lungGrad" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#ffb3c1" />
+                                <stop offset="100%" stop-color="#e63946" />
+                            </radialGradient>
+                            <linearGradient id="diaphragmGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#e76f51" />
+                                <stop offset="100%" stop-color="#d62828" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Background / Thorax wall (static) -->
+                        <path d="M 50 50 Q 50 20 150 20 Q 250 20 250 50 L 250 300 Q 250 320 150 320 Q 50 320 50 300 Z" fill="#f8f9fa" stroke="#ced4da" stroke-width="2" />
+
+                        <!-- Inspiration Arrow (Left) -->
+                        <g id="insp-arrow" style="opacity: 0; transition: opacity 0.3s;">
+                            <path d="M 25 120 L 25 240 M 10 220 L 25 240 L 40 220" stroke="#0077b6" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                            <text x="25" y="110" fill="#0077b6" font-size="12" font-weight="bold" text-anchor="middle">AIR IN</text>
+                        </g>
+
+                        <!-- Expiration Arrow (Right) -->
+                        <g id="exp-arrow" style="opacity: 0; transition: opacity 0.3s;">
+                            <path d="M 275 240 L 275 120 M 260 140 L 275 120 L 290 140" stroke="#e63946" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                            <text x="275" y="110" fill="#e63946" font-size="12" font-weight="bold" text-anchor="middle">AIR OUT</text>
+                        </g>
+
+                        <!-- Rib Cage (Group that scales) -->
+                        <g id="rib-cage-group" style="transform-origin: 150px 150px; transition: transform 0.3s ease;">
+                            <path d="M 60 100 Q 100 100 120 130" fill="none" stroke="#adb5bd" stroke-width="4" stroke-linecap="round"/>
+                            <path d="M 240 100 Q 200 100 180 130" fill="none" stroke="#adb5bd" stroke-width="4" stroke-linecap="round"/>
+                            <path d="M 50 140 Q 100 140 125 170" fill="none" stroke="#adb5bd" stroke-width="4" stroke-linecap="round"/>
+                            <path d="M 250 140 Q 200 140 175 170" fill="none" stroke="#adb5bd" stroke-width="4" stroke-linecap="round"/>
+                            <path d="M 55 180 Q 100 180 120 210" fill="none" stroke="#adb5bd" stroke-width="4" stroke-linecap="round"/>
+                            <path d="M 245 180 Q 200 180 180 210" fill="none" stroke="#adb5bd" stroke-width="4" stroke-linecap="round"/>
+                        </g>
+
+                        <!-- Lungs (Group that expands) -->
+                        <g id="lungs-group" style="transform-origin: 150px 150px; transition: transform 0.3s ease;">
+                            <path id="left-lung" d="M 140 80 Q 100 70 80 120 Q 70 180 100 240 Q 120 260 140 250 Q 145 200 145 150 Z" fill="url(#lungGrad)" stroke="#c1121f" stroke-width="2" opacity="0.9" />
+                            <path id="right-lung" d="M 160 80 Q 200 70 220 120 Q 230 180 200 240 Q 180 260 160 250 Q 155 200 155 150 Z" fill="url(#lungGrad)" stroke="#c1121f" stroke-width="2" opacity="0.9" />
+                            <path d="M 150 20 L 150 80" stroke="#6c757d" stroke-width="6" fill="none" />
+                            <path d="M 150 80 L 120 100" stroke="#6c757d" stroke-width="4" fill="none" />
+                            <path d="M 150 80 L 180 100" stroke="#6c757d" stroke-width="4" fill="none" />
+                        </g>
+
+                        <!-- Diaphragm (Group that flattens and descends) -->
+                        <g id="diaphragm-group" style="transform-origin: 150px 260px; transition: transform 0.3s ease;">
+                            <path id="diaphragm-shape" d="M 40 260 Q 150 200 260 260 L 260 280 L 40 280 Z" fill="url(#diaphragmGrad)" stroke="#a4161a" stroke-width="3" />
+                        </g>
+                    </svg>
+
+                    <div class="pressure-container">
+                        <div class="pressure-badge pressure-equal" id="patm-badge">
+                            P<sub>ATM</sub> = 760 mmHg (Atmospheric)
+                        </div>
+                        <div class="pressure-badge pressure-equal" id="pressure-badge">
+                            P<sub>ALV</sub> = 760 mmHg (Alveolar)
+                        </div>
+                        <div class="pressure-gradient" id="pressure-gradient">
+                            Pressures are equal. No airflow.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-panel">
+                    <div class="control-group">
+                        <label for="muscle-control">Breathing Muscles (Diaphragm + Intercostals)</label>
+                        <input type="range" id="muscle-control" min="-100" max="100" value="0">
+                        <div class="legend">
+                            <span>← Exhalation<br>(Muscles Relax / Compress)</span>
+                            <span>Inhalation<br>(Muscles Contract / Expand) →</span>
+                        </div>
+                    </div>
+
+                    <div style="text-align:center; font-size: 0.9rem; color:#6c757d;">
+                        <em>Notice how the diaphragm flattens and moves downward as the rib cage expands outward. This increases thoracic volume.</em>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE 4: Pressure Tracing Chart -->
+        <div class="card">
+            <h2>4. Live Intrapulmonary Pressure Tracing</h2>
+            <p>The graph below plots the pressure inside the alveoli (P<sub>ALV</sub>) over time. Watch how inhalation dips below atmospheric pressure and exhalation peaks above it.</p>
+            <div class="graph-container">
+                <canvas id="pressure-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- MODULE 5: Formative Quiz -->
+        <div class="card">
+            <h2>5. Knowledge Check</h2>
+            
+            <div class="student-info">
+                <label for="student-name">Student Name:</label>
+                <input type="text" id="student-name" placeholder="Enter your full name to generate PDF" required>
+            </div>
+
+            <form id="quiz-form">
+                <div class="quiz-question">
+                    <p>1. Which of the following sequences correctly traces the airflow during inhalation?</p>
+                    <label class="quiz-option"><input type="radio" name="q1" value="A"> A) Alveoli → Bronchioles → Bronchi → Trachea → Pharynx</label>
+                    <label class="quiz-option"><input type="radio" name="q1" value="B"> B) Pharynx → Trachea → Bronchi → Bronchioles → Alveoli</label>
+                    <label class="quiz-option"><input type="radio" name="q1" value="C"> C) Trachea → Pharynx → Bronchioles → Alveoli → Bronchi</label>
+                </div>
+
+                <div class="quiz-question">
+                    <p>2. During inspiration, what happens to thoracic volume and intrapulmonary pressure?</p>
+                    <label class="quiz-option"><input type="radio" name="q2" value="A"> A) Volume increases; pressure decreases below atmospheric pressure.</label>
+                    <label class="quiz-option"><input type="radio" name="q2" value="B"> B) Volume decreases; pressure increases above atmospheric pressure.</label>
+                    <label class="quiz-option"><input type="radio" name="q2" value="C"> C) Volume increases; pressure stays exactly at 760 mmHg.</label>
+                </div>
+
+                <div class="quiz-question">
+                    <p>3. Which muscle group is primarily responsible for contracting and flattening to initiate quiet inspiration?</p>
+                    <label class="quiz-option"><input type="radio" name="q3" value="A"> A) Internal intercostal muscles</label>
+                    <label class="quiz-option"><input type="radio" name="q3" value="B"> B) Abdominal rectus muscles</label>
+                    <label class="quiz-option"><input type="radio" name="q3" value="C"> C) Diaphragm</label>
+                </div>
+
+                <div class="quiz-question">
+                    <p>4. According to Boyle's Law, why does air rush into the lungs?</p>
+                    <label class="quiz-option"><input type="radio" name="q4" value="A"> A) Because the pressure inside the lungs drops below atmospheric pressure.</label>
+                    <label class="quiz-option"><input type="radio" name="q4" value="B"> B) Because the diaphragm actively pulls air molecules in.</label>
+                    <label class="quiz-option"><input type="radio" name="q4" value="C"> C) Because atmospheric pressure drops during inspiration.</label>
+                </div>
+
+                <div class="quiz-question">
+                    <p>5. If P<sub>ATM</sub> = 760 mmHg and P<sub>ALV</sub> = 756 mmHg, which way does air move?</p>
+                    <label class="quiz-option"><input type="radio" name="q5" value="A"> A) Into the lungs (Air rushes in)</label>
+                    <label class="quiz-option"><input type="radio" name="q5" value="B"> B) Out of the lungs (Air rushes out)</label>
+                    <label class="quiz-option"><input type="radio" name="q5" value="C"> C) No movement occurs</label>
+                </div>
+
+                <div class="quiz-question">
+                    <p>6. If P<sub>ATM</sub> = 760 mmHg and P<sub>ALV</sub> = 764 mmHg, which way does air move?</p>
+                    <label class="quiz-option"><input type="radio" name="q6" value="A"> A) Into the lungs (Air rushes in)</label>
+                    <label class="quiz-option"><input type="radio" name="q6" value="B"> B) Out of the lungs (Air rushes out)</label>
+                    <label class="quiz-option"><input type="radio" name="q6" value="C"> C) No movement occurs</label>
+                </div>
+
+                <button type="button" class="btn" id="submit-quiz">Submit Answers</button>
+                <button type="button" class="btn btn-pdf" id="download-pdf">⬇ Download PDF for ManageBac</button>
+            </form>
+            <div id="quiz-result"></div>
+        </div>
+
+    </div>
+
+    <!-- Hidden Container for PDF Generation -->
+    <div id="pdf-template">
+        <h1>Respiratory Mechanics Lab - Results</h1>
+        <div class="meta">
+            <p><strong>Student Name:</strong> <span id="pdf-name"></span></p>
+            <p><strong>Date:</strong> <span id="pdf-date"></span></p>
+            <p><strong>Score:</strong> <span id="pdf-score"></span></p>
+        </div>
+        <div id="pdf-questions-container">
+            <!-- Questions injected here -->
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // MODULE 2: AIRWAY PATH LOGIC
+        // ==========================================
+        const airwayData = [
+            {
+                title: "Sinuses / Pharynx",
+                text: "<strong>Location:</strong> Nasal cavity / Pharynx<br><strong>Function:</strong> Conducting airway. Conditions and filters air before it travels deeper into the respiratory tract."
+            },
+            {
+                title: "Trachea",
+                text: "<strong>Location:</strong> Windpipe<br><strong>Function:</strong> Conducting airway. C-shaped cartilage rings prevent airway collapse and transport air toward the lungs."
+            },
+            {
+                title: "Bronchi",
+                text: "<strong>Location:</strong> Primary bronchi branching from trachea<br><strong>Function:</strong> Conducting airway. Distributes airflow to each lung and progressively subdivides."
+            },
+            {
+                title: "Bronchioles",
+                text: "<strong>Location:</strong> Intrapulmonary bronchioles<br><strong>Function:</strong> Conducting airway. Terminal branches that regulate airflow resistance and distribute air to respiratory zones."
+            },
+            {
+                title: "Alveoli",
+                text: "<strong>Location:</strong> Alveolar sacs<br><strong>Function:</strong> Gas exchange structure. Thin, single-cell squamous epithelium enables rapid diffusion of O<sub>2</sub> and CO<sub>2</sub>."
+            }
+        ];
+
+        const slider = document.getElementById('airway-slider');
+        const steps = document.querySelectorAll('.airway-step');
+        const airwayInfo = document.getElementById('airway-info');
+
+        function updateAirway(index) {
+            steps.forEach((step, i) => {
+                if (i === index) step.classList.add('active');
+                else step.classList.remove('active');
+            });
+            const data = airwayData[index];
+            airwayInfo.innerHTML = data.text;
+        }
+
+        slider.addEventListener('input', (e) => {
+            updateAirway(parseInt(e.target.value));
+        });
+        steps.forEach(step => {
+            step.addEventListener('click', () => {
+                const idx = parseInt(step.id.replace('step-', ''));
+                slider.value = idx;
+                updateAirway(idx);
+            });
+        });
+        updateAirway(0);
+
+
+        // ==========================================
+        // MODULE 3 & 4: BREATHING MECHANICS & CHART
+        // ==========================================
+        const muscleControl = document.getElementById('muscle-control');
+        
+        // SVG Elements
+        const lungsGroup = document.getElementById('lungs-group');
+        const ribCageGroup = document.getElementById('rib-cage-group');
+        const diaphragmGroup = document.getElementById('diaphragm-group');
+        const inspArrow = document.getElementById('insp-arrow');
+        const expArrow = document.getElementById('exp-arrow');
+        
+        // Badges
+        const pressureBadge = document.getElementById('pressure-badge');
+        const pressureGradient = document.getElementById('pressure-gradient');
+
+        // Canvas Graph Setup
+        const canvas = document.getElementById('pressure-chart');
+        const ctx = canvas.getContext('2d');
+        let graphData = [];
+        const maxPoints = 120;
+        let currentPalv = 760;
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function updateMechanics() {
+            const muscleVal = parseInt(muscleControl.value); 
+
+            // Diaphragm movement
+            const diaTranslateY = muscleVal * 0.2; 
+            const diaScaleY = 1 - (muscleVal * 0.005); 
+            diaphragmGroup.style.transform = `translateY(${diaTranslateY}px) scaleY(${diaScaleY})`;
+
+            // Rib cage expansion
+            const ribScale = 1 + ((muscleVal / 100) * 0.15); 
+            ribCageGroup.style.transform = `scale(${ribScale})`;
+
+            // Lung inflation
+            const combinedEffort = muscleVal / 100; 
+            const lungScale = 1 + (combinedEffort * 0.2); 
+            lungsGroup.style.transform = `scale(${lungScale})`;
+
+            // Physics
+            let pressureDelta = combinedEffort * 8; 
+            let calculatedPalv = Math.round(760 - pressureDelta);
+            
+            currentPalv += (calculatedPalv - currentPalv) * 0.1;
+            let displayPalv = Math.round(currentPalv);
+
+            // Update UI
+            pressureBadge.className = 'pressure-badge'; 
+            inspArrow.style.opacity = 0;
+            expArrow.style.opacity = 0;
+
+            if (displayPalv < 758) {
+                pressureBadge.classList.add('pressure-low');
+                pressureBadge.innerHTML = `P<sub>ALV</sub> = ${displayPalv} mmHg (Below P<sub>ATM</sub>)`;
+                pressureGradient.innerHTML = `P<sub>ATM</sub> > P<sub>ALV</sub> → Air flows IN`;
+                pressureGradient.style.color = '#0077b6';
+                inspArrow.style.opacity = 1;
+            } else if (displayPalv > 762) {
+                pressureBadge.classList.add('pressure-high');
+                pressureBadge.innerHTML = `P<sub>ALV</sub> = ${displayPalv} mmHg (Above P<sub>ATM</sub>)`;
+                pressureGradient.innerHTML = `P<sub>ATM</sub> < P<sub>ALV</sub> → Air flows OUT`;
+                pressureGradient.style.color = '#e63946';
+                expArrow.style.opacity = 1;
+            } else {
+                pressureBadge.classList.add('pressure-equal');
+                pressureBadge.innerHTML = `P<sub>ALV</sub> = ${displayPalv} mmHg (Equal to P<sub>ATM</sub>)`;
+                pressureGradient.innerHTML = `Pressures are equal. No airflow.`;
+                pressureGradient.style.color = '#6c757d';
+            }
+
+            if (graphData.length > maxPoints) graphData.shift();
+            graphData.push(displayPalv);
+        }
+
+        muscleControl.addEventListener('input', updateMechanics);
+
+        // Graph Drawing Loop
+        function drawGraph() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const padding = 30;
+            
+            ctx.clearRect(0, 0, w, h);
+
+            ctx.strokeStyle = '#e9ecef';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                let y = padding + (i * ((h - padding*2) / 4));
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(w - padding, y);
+                ctx.stroke();
+            }
+
+            const midY = padding + ((h - padding*2) / 2);
+            ctx.strokeStyle = '#adb5bd';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(padding, midY);
+            ctx.lineTo(w - padding, midY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#6c757d';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText('768', padding - 5, padding + 5);
+            ctx.fillText('760', padding - 5, midY + 4);
+            ctx.fillText('752', padding - 5, h - padding + 5);
+
+            if (graphData.length < 2) return;
+
+            ctx.strokeStyle = '#0077b6';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            
+            const xStep = (w - padding * 2) / (maxPoints - 1);
+            const yScale = (h - padding * 2) / 16;
+
+            graphData.forEach((val, i) => {
+                const x = padding + (i * xStep);
+                const y = midY - ((val - 760) * yScale);
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            if (graphData.length > 0) {
+                const lastVal = graphData[graphData.length - 1];
+                const x = padding + ((graphData.length - 1) * xStep);
+                const y = midY - ((lastVal - 760) * yScale);
+                
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function animationLoop() {
+            updateMechanics(); 
+            drawGraph();
+            requestAnimationFrame(animationLoop);
+        }
+        animationLoop();
+
+
+        // ==========================================
+        // MODULE 5: QUIZ LOGIC & PDF GENERATION
+        // ==========================================
+        const answers = { q1: 'B', q2: 'A', q3: 'C', q4: 'A', q5: 'A', q6: 'B' };
+        
+        const questionsText = {
+            q1: "Which of the following sequences correctly traces the airflow during inhalation?",
+            q2: "During inspiration, what happens to thoracic volume and intrapulmonary pressure?",
+            q3: "Which muscle group is primarily responsible for contracting and flattening to initiate quiet inspiration?",
+            q4: "According to Boyle's Law, why does air rush into the lungs?",
+            q5: "If P_ATM = 760 mmHg and P_ALV = 756 mmHg, which way does air move?",
+            q6: "If P_ATM = 760 mmHg and P_ALV = 764 mmHg, which way does air move?"
+        };
+
+        const optionTexts = {
+            q1: { A: "Alveoli → Bronchioles → Bronchi → Trachea → Pharynx", B: "Pharynx → Trachea → Bronchi → Bronchioles → Alveoli", C: "Trachea → Pharynx → Bronchioles → Alveoli → Bronchi" },
+            q2: { A: "Volume increases; pressure decreases below atmospheric pressure.", B: "Volume decreases; pressure increases above atmospheric pressure.", C: "Volume increases; pressure stays exactly at 760 mmHg." },
+            q3: { A: "Internal intercostal muscles", B: "Abdominal rectus muscles", C: "Diaphragm" },
+            q4: { A: "Because the pressure inside the lungs drops below atmospheric pressure.", B: "Because the diaphragm actively pulls air molecules in.", C: "Because atmospheric pressure drops during inspiration." },
+            q5: { A: "Into the lungs (Air rushes in)", B: "Out of the lungs (Air rushes out)", C: "No movement occurs" },
+            q6: { A: "Into the lungs (Air rushes in)", B: "Out of the lungs (Air rushes out)", C: "No movement occurs" }
+        };
+
+        document.querySelectorAll('.quiz-option').forEach(label => {
+            label.addEventListener('click', function() {
+                const input = this.querySelector('input');
+                if (input) {
+                    input.checked = true;
+                    const name = input.name;
+                    document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
+                        radio.parentElement.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+                }
+            });
+        });
+
+        let currentScore = 0;
+
+        document.getElementById('submit-quiz').addEventListener('click', function() {
+            const studentName = document.getElementById('student-name').value.trim();
+            if (!studentName) {
+                alert("Please enter your name before submitting.");
+                return;
+            }
+
+            let score = 0;
+            const form = document.getElementById('quiz-form');
+            const resultDiv = document.getElementById('quiz-result');
+            const pdfBtn = document.getElementById('download-pdf');
+
+            document.querySelectorAll('.quiz-option').forEach(opt => {
+                opt.classList.remove('correct', 'incorrect');
+            });
+
+            for (let q in answers) {
+                const selected = form.querySelector(`input[name="${q}"]:checked`);
+                if (selected) {
+                    if (selected.value === answers[q]) {
+                        score++;
+                        selected.parentElement.classList.add('correct');
+                    } else {
+                        selected.parentElement.classList.add('incorrect');
+                        const correctOpt = form.querySelector(`input[name="${q}"][value="${answers[q]}"]`);
+                        if (correctOpt) correctOpt.parentElement.classList.add('correct');
+                    }
+                }
+            }
+
+            currentScore = score;
+            const totalQuestions = Object.keys(answers).length;
+
+            resultDiv.style.display = 'block';
+            if (score === totalQuestions) {
+                resultDiv.style.background = '#d4edda';
+                resultDiv.style.color = '#155724';
+                resultDiv.innerHTML = `🌟 Perfect! You scored ${score}/${totalQuestions}. You have mastered respiratory mechanics!`;
+            } else {
+                resultDiv.style.background = '#fff3cd';
+                resultDiv.style.color = '#856404';
+                resultDiv.innerHTML = `You scored ${score}/${totalQuestions}. Review the highlighted corrections above and try the simulator again.`;
+            }
+            
+            this.textContent = "Retake Quiz";
+            this.onclick = function() {
+                form.reset();
+                document.querySelectorAll('.quiz-option').forEach(opt => {
+                    opt.classList.remove('selected', 'correct', 'incorrect');
+                });
+                resultDiv.style.display = 'none';
+                pdfBtn.style.display = 'none';
+                this.textContent = "Submit Answers";
+                this.onclick = arguments.callee; 
+            };
+
+            pdfBtn.style.display = 'inline-block';
+            pdfBtn.onclick = generatePDF;
+        });
+
+        function generatePDF() {
+            const studentName = document.getElementById('student-name').value.trim();
+            const dateStr = new Date().toLocaleDateString();
+            const totalQuestions = Object.keys(answers).length;
+            const form = document.getElementById('quiz-form');
+
+            document.getElementById('pdf-name').textContent = studentName;
+            document.getElementById('pdf-date').textContent = dateStr;
+            document.getElementById('pdf-score').textContent = `${currentScore} / ${totalQuestions}`;
+
+            const qContainer = document.getElementById('pdf-questions-container');
+            qContainer.innerHTML = ''; 
+
+            for (let q in answers) {
+                const selected = form.querySelector(`input[name="${q}"]:checked`);
+                const studentAns = selected ? selected.value : "Not answered";
+                const correctAns = answers[q];
+                const isCorrect = studentAns === correctAns;
+
+                const qDiv = document.createElement('div');
+                qDiv.className = 'question';
+                qDiv.innerHTML = `
+                    <div class="q-text">${q.toUpperCase().replace('Q', 'Question ')}: ${questionsText[q]}</div>
+                    <div class="q-ans">Your Answer: ${optionTexts[q][studentAns] || studentAns} 
+                        <strong class="${isCorrect ? 'correct' : 'incorrect'}">(${isCorrect ? 'Correct' : 'Incorrect'})</strong>
+                    </div>
+                    ${!isCorrect ? `<div class="q-ans" style="color: #666; font-size: 12px;">Correct Answer: ${optionTexts[q][correctAns]}</div>` : ''}
+                `;
+                qContainer.appendChild(qDiv);
+            }
+
+            const element = document.getElementById('pdf-template');
+            const opt = {
+                margin:       0.5,
+                filename:     `Respiratory_Quiz_${studentName.replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
